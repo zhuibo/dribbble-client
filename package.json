@@ -1,0 +1,26 @@
+{
+  "name": "dribbble-client",
+  "version": "0.0.2",
+  "description": "dribbble client for api v2",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "",
+    "cover": ""
+  },
+  "repository": "https://github.com/xuhong/dribbble-client",
+  "keywords": [
+    "dribbble",
+    "dribbble-api",
+    "dribbble-client"
+  ],
+  "author": "xuhong",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^10.12.0"
+  }
+}
