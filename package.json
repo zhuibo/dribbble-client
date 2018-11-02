@@ -18,9 +18,14 @@
   "author": "xuhong",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.18.0"
+    "axios": "^0.18.0",
+    "lodash": "^4.17.11",
+    "querystring": "^0.2.0"
   },
   "devDependencies": {
-    "@types/node": "^10.12.0"
+    "@types/lodash": "^4.14.117",
+    "@types/node": "^10.12.0",
+    "chai": "^4.2.0",
+    "mocha": "^5.2.0"
   }
 }

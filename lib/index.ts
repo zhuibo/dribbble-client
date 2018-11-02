@@ -1,5 +1,7 @@
-import axios, { AxiosInstance, AxiosPromise } from "axios";
+import axios, { AxiosInstance, AxiosPromise, AxiosRequestConfig } from "axios";
 import { format, parse } from "url";
+import { snakeCase, camelCase, pickBy } from "lodash";
+import { stringify } from "querystring";
 
 const API_ENDPOINT = "https://api.dribbble.com/v2";
 const OAUTH_ENDPOINT = "https://dribbble.com/oauth";
@@ -10,14 +12,34 @@ export interface Pager {
   perPage: number;
 }
 
-export interface Client {
-  clientId: string;
-  clientSecret: string;
-}
-
 export enum EnumScope {
   PUBLIC = "pulic",
   UPLOAD = "upload"
+}
+
+export interface Client {
+  clientId: string;
+  clientSecret: string;
+  scope: string;
+}
+
+function snakePipe(data: any) {
+  const ret: any = {};
+
+  Object.keys(pickBy(data)).forEach(key => {
+    ret[snakeCase(key)] = data[key];
+  });
+
+  return ret;
+}
+
+function camelPipe(data: any) {
+  const ret: any = {};
+
+  Object.keys(data).forEach(key => {
+    ret[camelCase(key)] = data[key];
+  });
+  return ret;
 }
 
 // How to extends Error? https://stackoverflow.com/questions/31089801/extending-error-in-javascript-with-es6-syntax-babel
@@ -39,20 +61,33 @@ export default class Dribbble {
   private accessToken: string;
   private clientId: string;
   private clientSecret: string;
+  private scope: string;
   private client: AxiosInstance;
 
   constructor(clientConfig: Client) {
     this.clientId = clientConfig.clientId;
     this.clientSecret = clientConfig.clientSecret;
+    this.scope = clientConfig.scope;
+    this.accessToken = "";
+
     this.client = axios.create({
       baseURL: API_ENDPOINT,
       headers: {
         post: {
           "Content-Type": "application/x-www-form-urlencoded"
         }
-      }
+      },
+      transformRequest: [snakePipe, data => stringify(data)]
     });
-    this.accessToken = "";
+
+    this.client.interceptors.response.use(
+      function(response) {
+        return camelPipe(response.data);
+      },
+      function(error) {
+        return Promise.reject(error);
+      }
+    );
   }
 
   /**
@@ -65,6 +100,10 @@ export default class Dribbble {
     }
   }
 
+  private makeRequest(options: AxiosRequestConfig) {
+    return this.client;
+  }
+
   /**
    * Get dribbble authorization url, you should redirect user to the url.
    * @param scope
@@ -72,19 +111,21 @@ export default class Dribbble {
    * @param state
    */
   public getAuthorizationUrl(
-    scope?: EnumScope,
+    scope?: string,
     redirectUri?: string,
     state?: string
   ): string {
+    const query = snakePipe({
+      clientId: this.clientId,
+      scope: scope || this.scope,
+      redirectUri,
+      state
+    });
+
     return format({
       ...OAUTH_URI,
       pathname: "/oauth/authorize",
-      query: {
-        clientId: this.clientId,
-        scope,
-        redirectUri,
-        state
-      }
+      query
     });
   }
 
@@ -93,7 +134,7 @@ export default class Dribbble {
    * @param code
    */
   public exchangeAuthorizationCode(code: string, redirectUri?: string) {
-    return axios.post(`{OAUTH_ENDPOINT}/token`, {
+    return this.client.post(`${OAUTH_ENDPOINT}/token`, {
       clientId: this.clientId,
       clientSecret: this.clientSecret,
       code,
